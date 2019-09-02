@@ -2,19 +2,18 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '5.1.0'
 }
 
 ext {
     wrapperGradleVersion = gradleVersion
 }
 
-group = 'dburyak.benchmark.book.service'
+group = 'dburyak.benchmark.book'
 version = '0.0.1-SNAPSHOT'
 
 sourceCompatibility = 12
 targetCompatibility = 12
-mainClassName = 'dburyak.benchmark.book.service.MainVerticle'
+mainClassName = 'dburyak.benchmark.book.App'
 
 repositories {
     mavenLocal()
@@ -26,6 +25,8 @@ dependencies {
     implementation "org.codehaus.groovy:groovy-all:${groovyVersion}"
     implementation "io.vertx:vertx-core:${vertxVersion}"
     implementation "io.vertx:vertx-lang-groovy:${vertxVersion}"
+    implementation "io.vertx:vertx-web:${vertxVersion}"
+    implementation "io.vertx:vertx-config:${vertxVersion}"
 
     // logging
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
@@ -36,13 +37,8 @@ wrapper {
     gradleVersion = wrapperGradleVersion
 }
 
-shadowJar {
-    mergeServiceFiles {
-        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
-    }
-}
-
 run {
     systemProperties['vertx.logger-delegate-factory-class-name'] = 'io.vertx.core.logging.SLF4JLogDelegateFactory'
+    systemProperties['vertxweb.environment'] = 'production'
 }
 
