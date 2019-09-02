@@ -1,5 +1,7 @@
 package dburyak.benchmark.book
 
+import dburyak.benchmark.book.service.AuthorService
+import dburyak.benchmark.book.service.BookService
 import groovy.util.logging.Slf4j
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.AbstractVerticle
@@ -21,6 +23,9 @@ class MainVerticle extends AbstractVerticle {
     private HttpServer server
     private Router router
     private def rnd = new Random()
+
+    private BookService bookService = new BookService()
+    private AuthorService authorService = new AuthorService()
 
     @Override
     void start(Future<Void> startFuture) {
