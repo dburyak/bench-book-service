@@ -15,4 +15,6 @@ appender('STDOUT', ConsoleAppender) {
 
 root INFO, ['STDOUT']
 
-logger 'dburyak.benchmark.book.service', TRACE
+logger 'io.vertx.config', WARN
+
+logger 'dburyak.benchmark.book', TRACE

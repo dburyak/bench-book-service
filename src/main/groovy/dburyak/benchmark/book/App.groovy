@@ -1,48 +1,72 @@
 package dburyak.benchmark.book
 
-
 import groovy.util.logging.Slf4j
-import io.vertx.core.DeploymentOptions
+import io.micronaut.context.ApplicationContext
+import io.micronaut.context.annotation.Context
+import io.micronaut.context.annotation.Requires
 import io.vertx.core.Vertx
-import io.vertx.core.VertxOptions
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS
-import static java.util.concurrent.TimeUnit.SECONDS
+import javax.annotation.PostConstruct
+import javax.inject.Inject
 
+@Context
+@Requires(beans = [Vertx])
 @Slf4j
 class App {
-    static void main(String[] args) {
-        log.info 'starting application'
-        def numCpu = Runtime.getRuntime().availableProcessors()
+    private final Set<String> deploymentIds = Collections.synchronizedSet(new LinkedHashSet<>())
 
-        if (!System.properties.contains('vertxweb.environment')
-                && !System.getenv().containsKey('VERTXWEB_ENVIRONMENT')) {
+    @Inject
+    Vertx vertx
 
-            // no vertx-web env is configured, should run in dev mode
-            log.debug 'set vertx-web to implicit mode : development'
-            System.setProperty('vertxweb.environment', 'development')
+    @Inject
+    ApplicationContext applicationContext
+
+    Integer numHttpVerticles
+
+    @PostConstruct
+    void start() {
+        def runtime = Runtime.runtime
+        def numCpu = runtime.availableProcessors()
+        def (memMax, memFree, memAlloc) = [runtime.maxMemory(), runtime.freeMemory(), runtime.totalMemory()]
+        def memMaxMb = toMegabytes memMax
+        def memFreeMb = toMegabytes memFree
+        def memAllocMb = toMegabytes memAlloc
+        def memUsedMb = toMegabytes(memAlloc - memFree)
+        log.info 'starting application : numCpu={}, memMb(max:alloc:free:used)={}:{}:{}:{}',
+                numCpu, memMaxMb, memAllocMb, memFreeMb, memUsedMb
+
+        // configure vertx-web mode
+        if (!System.getProperty('vertxweb.environment')
+                && !System.getenv('VERTXWEB_ENVIRONMENT')) {
+
+            // no vertx-web env is configured, should run in prod mode
+            def mode = 'production'
+            log.debug 'set vertx-web to implicit mode : {}', mode
+            System.setProperty('vertxweb.environment', mode)
         }
         def mode = System.getProperty('vertxweb.environment') ?: System.getenv('VERTXWEB_ENVIRONMENT')
         log.info 'vertx-web mode : {}', mode
 
-        def vertx = Vertx.vertx new VertxOptions().tap {
-            maxEventLoopExecuteTime = 500
-            maxEventLoopExecuteTimeUnit = MILLISECONDS
-
-            workerPoolSize = numCpu * 2
-            maxWorkerExecuteTime = 4
-            maxWorkerExecuteTimeUnit = SECONDS
-        }
-
-        log.debug 'num main verticles instances : {}', numCpu
-        vertx.deployVerticle MainVerticle, new DeploymentOptions().tap {
-            instances = numCpu
-        }, { id ->
-            if (id.succeeded()) {
-                log.info 'main verticles deployed : deployId = {}, numVerticles = {}', id.result(), numCpu
-            } else {
-                log.error 'main verticles deployment failed :', id.cause()
+        numHttpVerticles = numCpu
+        log.debug 'num http verticles instances : {}', numHttpVerticles
+        numHttpVerticles.times {
+            vertx.deployVerticle(applicationContext.getBean(HttpServerVerticle)) { id ->
+                if (id.succeeded()) {
+                    def deployId = id.result()
+                    deploymentIds << deployId
+                    log.info 'http verticle deployed : deployId = {}', deployId
+                } else {
+                    log.error 'http verticles deployment failed :', id.cause()
+                }
             }
         }
+    }
+
+    void stop() {
+        applicationContext.stop()
+    }
+
+    private static def toMegabytes(Long bytes) {
+        (bytes / (1024 * 1024)).round().toLong()
     }
 }

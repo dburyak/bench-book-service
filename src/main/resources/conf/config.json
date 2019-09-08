@@ -1,5 +1,3 @@
 {
-  "http.port": 9973,
-  "response.time.minMs": 100,
-  "response.time.maxMs": 1000
+  "http.port": 8080
 }

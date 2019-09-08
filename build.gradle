@@ -2,6 +2,9 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
+
+    // annotation processing plugin (required for micronaut DI)
+    id "net.ltgt.apt" version "0.18"
 }
 
 ext {
@@ -13,7 +16,7 @@ version = '0.0.1-SNAPSHOT'
 
 sourceCompatibility = 12
 targetCompatibility = 12
-mainClassName = 'dburyak.benchmark.book.App'
+mainClassName = 'dburyak.benchmark.book.AppStarter'
 
 repositories {
     mavenLocal()
@@ -31,6 +34,13 @@ dependencies {
     // logging
     implementation "ch.qos.logback:logback-classic:${logbackVersion}"
     implementation "org.slf4j:slf4j-api:${slf4ApiVersion}"
+
+    // micronaut DI
+    compileOnly "io.micronaut:micronaut-inject-groovy:${micronautVersion}"
+    testCompileOnly "io.micronaut:micronaut-inject-groovy:${micronautVersion}"
+    implementation "io.micronaut:micronaut-inject:${micronautVersion}"
+    implementation "io.micronaut:micronaut-validation:${micronautVersion}"
+    annotationProcessor "io.micronaut:micronaut-validation:${micronautVersion}"
 }
 
 wrapper {
@@ -38,7 +48,7 @@ wrapper {
 }
 
 run {
-    systemProperties['vertx.logger-delegate-factory-class-name'] = 'io.vertx.core.logging.SLF4JLogDelegateFactory'
-    systemProperties['vertxweb.environment'] = 'production'
+    systemProperty('vertx.logger-delegate-factory-class-name', 'io.vertx.core.logging.SLF4JLogDelegateFactory')
+    systemProperty('vertxweb.environment', 'development')
 }
 
